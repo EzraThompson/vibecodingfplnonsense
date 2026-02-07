@@ -1,0 +1,29 @@
+name: Update Top 10k EO Data
+
+on:
+  schedule:
+    # Runs every 3 hours - adjust for your gameweek schedule
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-eo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch top 10k EO data
+        run: node scripts/fetch-eo.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/eo-top10k.json
+          git diff --staged --quiet || git commit -m "Update top 10k EO data" && git push
