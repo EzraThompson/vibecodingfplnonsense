@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FPL Live Pulse</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Anybody:wght@400;700;900&family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-deep: #0a0a12;
+    --bg-card: #12121e;
+    --bg-card-hover: #1a1a2e;
+    --bg-bench: #0e0e18;
+    --accent-green: #00ff87;
+    --accent-purple: #7b2ff7;
+    --accent-magenta: #e90052;
+    --accent-amber: #f5a623;
+    --accent-cyan: #05f0ff;
+    --text-primary: #eef0f4;
+    --text-secondary: #8a8ea8;
+    --text-muted: #4a4e68;
+    --border: #1e1e32;
+    --gk-color: #ebff00;
+    --def-color: #00ff87;
+    --mid-color: #05f0ff;
+    --fwd-color: #e90052;
+    --rank-up: #00ff87;
+    --rank-down: #e90052;
+    --font-display: 'Anybody', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  html { background: var(--bg-deep); }
+  body {
+    font-family: var(--font-body); background: var(--bg-deep);
+    color: var(--text-primary); min-height: 100vh; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; top: -40%; left: -20%;
+    width: 80vw; height: 80vw;
+    background: radial-gradient(circle, rgba(123,47,247,0.06) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: ''; position: fixed; bottom: -30%; right: -20%;
+    width: 70vw; height: 70vw;
+    background: radial-gradient(circle, rgba(0,255,135,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .app {
+    position: relative; z-index: 1; max-width: 700px;
+    margin: 0 auto; padding: 24px 16px 40px;
+  }
+
+  /* Header */
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
+  .logo-mark {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-magenta));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 900; font-size: 18px;
+    color: #fff; flex-shrink: 0; box-shadow: 0 4px 20px rgba(123,47,247,0.3);
+  }
+  .header-text h1 {
+    font-family: var(--font-display); font-weight: 900; font-size: 22px;
+    letter-spacing: -0.5px; line-height: 1.1;
+    background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent-green));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .header-text .sub { font-size: 11px; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+
+  /* Input */
+  .id-bar { display: flex; gap: 10px; margin-bottom: 28px; }
+  .id-bar input {
+    flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px; font-family: var(--font-body);
+    font-size: 15px; color: var(--text-primary); outline: none; transition: border-color 0.2s;
+  }
+  .id-bar input::placeholder { color: var(--text-muted); }
+  .id-bar input:focus { border-color: var(--accent-purple); }
+  .id-bar button {
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-magenta));
+    border: none; border-radius: 10px; padding: 12px 24px;
+    font-family: var(--font-display); font-weight: 700; font-size: 14px;
+    color: #fff; cursor: pointer; transition: transform 0.15s, box-shadow 0.2s; white-space: nowrap;
+  }
+  .id-bar button:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(123,47,247,0.35); }
+  .id-bar button:active { transform: scale(0.97); }
+
+  /* Status bar */
+  .status-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-size: 12px; color: var(--text-muted); }
+  .status-bar .team-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--text-secondary); }
+  .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent-green); margin-right: 6px; animation: pulse-dot 2s infinite; }
+  .live-dot.paused { background: var(--text-muted); animation: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,255,135,0.5); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(0,255,135,0); }
+  }
+  .pause-btn {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; font-family: var(--font-display); font-weight: 700;
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); cursor: pointer; transition: border-color 0.2s, color 0.2s; margin-left: 8px;
+  }
+  .pause-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+  .pause-btn.paused { border-color: var(--accent-green); color: var(--accent-green); }
+
+  /* Summary Cards */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 14px; text-align: center; position: relative; overflow: hidden;
+    opacity: 0; transform: translateY(12px); animation: card-in 0.5s forwards;
+  }
+  .stat-card:nth-child(1) { animation-delay: 0.1s; }
+  .stat-card:nth-child(2) { animation-delay: 0.2s; }
+  .stat-card:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes card-in { to { opacity: 1; transform: translateY(0); } }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent-green), transparent); }
+  .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
+  .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-magenta), transparent); }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+  .stat-value { font-family: var(--font-display); font-weight: 900; font-size: 32px; line-height: 1; letter-spacing: -1px; }
+  .stat-value.points { color: var(--accent-green); }
+  .stat-value.rank { color: var(--text-primary); font-size: 22px; letter-spacing: -0.5px; }
+  .stat-sub { font-size: 11px; margin-top: 6px; color: var(--text-secondary); }
+  .rank-change {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-family: var(--font-display); font-weight: 700; font-size: 13px;
+    padding: 3px 8px; border-radius: 6px; margin-top: 6px;
+  }
+  .rank-change.up { color: var(--rank-up); background: rgba(0,255,135,0.1); }
+  .rank-change.down { color: var(--rank-down); background: rgba(233,0,82,0.1); }
+  .rank-change.neutral { color: var(--text-muted); background: rgba(255,255,255,0.04); }
+  .rank-change svg { width: 12px; height: 12px; }
+  .stat-label.rank-up { color: var(--rank-up); }
+  .stat-label.rank-down { color: var(--rank-down); }
+  .percentile-badge {
+    display: inline-block; font-family: var(--font-display); font-weight: 700;
+    font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-top: 6px;
+    background: rgba(123,47,247,0.15); color: var(--accent-purple);
+    letter-spacing: 0.3px;
+  }
+
+  /* Matchday comparison table */
+  .matchday-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; margin-bottom: 28px;
+  }
+  .matchday-table th, .matchday-table td {
+    padding: 10px 14px; text-align: center; font-size: 13px;
+  }
+  .matchday-table thead th {
+    font-family: var(--font-display); font-weight: 700; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border); padding: 12px 14px;
+  }
+  .matchday-table tbody td { border-bottom: 1px solid rgba(30,30,50,0.5); }
+  .matchday-table tbody tr:last-child td { border-bottom: none; }
+  .matchday-table .row-label {
+    text-align: left; font-weight: 600; color: var(--text-secondary); white-space: nowrap;
+  }
+  .matchday-table .val-you {
+    font-family: var(--font-display); font-weight: 900; color: var(--accent-green);
+  }
+  .matchday-table .val-local {
+    font-family: var(--font-display); font-weight: 700; color: var(--accent-amber);
+  }
+  .matchday-table .val-top10k {
+    font-family: var(--font-display); font-weight: 700; color: var(--accent-purple);
+  }
+  .matchday-table .val-pending { color: var(--text-muted); font-size: 11px; }
+
+  /* Section labels */
+  .section-label {
+    font-family: var(--font-display); font-weight: 700; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Player rows */
+  .squad-section { margin-bottom: 24px; }
+  .player-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 52px 52px 48px 44px 28px;
+    align-items: center; gap: 6px;
+    padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px;
+    transition: background 0.2s, border-color 0.2s;
+    opacity: 0; animation: row-in 0.35s forwards;
+  }
+  .player-row:hover { background: var(--bg-card-hover); border-color: #2a2a44; }
+  @keyframes row-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .pos-badge {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 900; font-size: 11px;
+    letter-spacing: 0.5px; flex-shrink: 0;
+  }
+  .pos-badge.gk { background: rgba(235,255,0,0.12); color: var(--gk-color); }
+  .pos-badge.def { background: rgba(0,255,135,0.1); color: var(--def-color); }
+  .pos-badge.mid { background: rgba(5,240,255,0.1); color: var(--mid-color); }
+  .pos-badge.fwd { background: rgba(233,0,82,0.12); color: var(--fwd-color); }
+
+  .player-info { min-width: 0; }
+  .player-name {
+    font-weight: 600; font-size: 14px; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .captain-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    font-family: var(--font-display); font-weight: 900; font-size: 10px; flex-shrink: 0;
+  }
+  .captain-badge.c { background: rgba(0,255,135,0.2); color: var(--accent-green); border: 1px solid rgba(0,255,135,0.3); }
+  .captain-badge.tc { background: rgba(233,0,82,0.2); color: var(--accent-magenta); border: 1px solid rgba(233,0,82,0.3); font-size: 8px; }
+  .captain-badge.vc { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.08); }
+  .player-live-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-green); flex-shrink: 0;
+    animation: pulse-dot 2s infinite;
+  }
+  .player-row.bench .player-live-dot { opacity: 0.4; }
+  .player-team { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+  .eo-col { text-align: right; white-space: nowrap; }
+  .eo-val { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+  .eo-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); display: block; margin-bottom: 1px; }
+  .eo-col.local .eo-val { color: var(--accent-amber); }
+  .eo-col.top10k .eo-val { color: var(--accent-purple); }
+  .eo-col.pending .eo-val { color: var(--text-muted); font-size: 10px; }
+
+  .impact-col { text-align: right; white-space: nowrap; }
+  .impact-val { font-size: 12px; font-weight: 700; }
+  .impact-val.pos { color: var(--accent-green); }
+  .impact-val.neg { color: var(--accent-magenta); }
+  .impact-val.zero { color: var(--text-muted); }
+  .impact-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); display: block; margin-bottom: 1px; }
+
+  .player-points {
+    font-family: var(--font-display); font-weight: 900; font-size: 20px;
+    min-width: 36px; text-align: right; color: var(--text-primary);
+  }
+  .player-points .multiplier { font-size: 10px; color: var(--accent-green); font-weight: 700; }
+
+  /* Bench */
+  .bench-divider {
+    display: flex; align-items: center; gap: 10px; margin: 20px 0 12px;
+    font-family: var(--font-display); font-size: 11px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted);
+  }
+  .bench-divider::before, .bench-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .player-row.bench { background: var(--bg-bench); border-color: rgba(30,30,50,0.5); }
+  .player-row.bench .player-name { color: var(--text-muted); }
+  .player-row.bench .player-team { color: var(--text-muted); opacity: 0.6; }
+  .player-row.bench .eo-col .eo-val { color: var(--text-muted) !important; opacity: 0.5; }
+  .player-row.bench .eo-label { opacity: 0.4; }
+  .player-row.bench .impact-val { color: var(--text-muted) !important; opacity: 0.5; }
+  .player-row.bench .impact-label { opacity: 0.4; }
+  .player-row.bench .player-points { color: var(--text-muted); }
+  .player-row.bench .pos-badge { opacity: 0.4; }
+
+  /* Missing players section */
+  .missing-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 52px 48px 44px;
+    align-items: center; gap: 6px;
+    padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px;
+    opacity: 0; animation: row-in 0.35s forwards;
+  }
+  .missing-row .impact-val.neg { color: var(--accent-magenta); }
+
+  /* Banners */
+  .hit-banner {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 14px; background: rgba(233,0,82,0.08); border: 1px solid rgba(233,0,82,0.15);
+    border-radius: 8px; margin-bottom: 10px; font-size: 12px; font-weight: 600; color: var(--accent-magenta);
+  }
+  .chip-banner {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 14px; background: rgba(123,47,247,0.08); border: 1px solid rgba(123,47,247,0.2);
+    border-radius: 8px; margin-bottom: 10px; font-family: var(--font-display);
+    font-size: 12px; font-weight: 700; color: var(--accent-purple); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .eo-progress-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: var(--text-secondary);
+  }
+  .eo-progress-banner .eo-prog-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .eo-progress-banner .eo-prog-fill { height: 100%; border-radius: 2px; transition: width 0.3s; background: linear-gradient(90deg, var(--accent-purple), var(--accent-green)); }
+  .eo-progress-banner .eo-prog-label { font-family: var(--font-display); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; color: var(--text-muted); }
+  .eo-progress-banner .eo-prog-pct { font-family: var(--font-display); font-weight: 900; font-size: 14px; color: var(--accent-green); min-width: 42px; text-align: right; }
+  .eo-done-banner {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 14px; background: rgba(0,255,135,0.05); border: 1px solid rgba(0,255,135,0.12);
+    border-radius: 8px; margin-bottom: 16px; font-size: 12px; color: var(--accent-green); font-weight: 600;
+  }
+
+  /* Loading / Error / Empty */
+  .loading-state { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+  .loading-state .spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--accent-purple); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-state { text-align: center; padding: 40px 20px; color: var(--accent-magenta); font-size: 14px; }
+  .empty-state { text-align: center; padding: 80px 20px; }
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-state p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+  .empty-state .hint { font-size: 12px; color: var(--text-muted); opacity: 0.6; margin-top: 8px; }
+
+  /* Detail button */
+  .detail-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 16px; padding: 2px;
+    transition: color 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .detail-btn:hover { color: var(--accent-cyan); }
+  .player-row.bench .detail-btn { opacity: 0.4; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    animation: fade-in 0.2s;
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .modal-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; width: 90%; max-width: 380px;
+    position: relative; animation: modal-in 0.25s;
+  }
+  @keyframes modal-in { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+  .modal-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: var(--text-muted);
+    font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+  .modal-title {
+    font-family: var(--font-display); font-weight: 900; font-size: 18px;
+    color: var(--text-primary); margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;
+  }
+  .modal-total {
+    font-family: var(--font-display); font-weight: 900; font-size: 28px;
+    color: var(--accent-green); margin-bottom: 16px;
+  }
+  .modal-total span { font-size: 13px; color: var(--text-muted); font-weight: 600; }
+  .breakdown-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(30,30,50,0.5);
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-stat { font-size: 14px; color: var(--text-primary); font-weight: 500; }
+  .breakdown-count { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .breakdown-pts { font-family: var(--font-display); font-weight: 700; font-size: 14px; color: var(--accent-green); }
+  .breakdown-pts.neg { color: var(--accent-magenta); }
+
+  /* Refresh bar */
+  .refresh-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 6px;
+    background: var(--bg-card); z-index: 100; border-top: 1px solid var(--border);
+  }
+  .refresh-bar .progress { height: 100%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-green)); width: 0%; transition: width 1s linear; }
+  .auto-refresh-label {
+    font-family: var(--font-display); font-size: 9px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted);
+    margin-top: 8px; text-align: right;
+  }
+
+  /* Responsive */
+  @media (max-width: 560px) {
+    .summary-grid { grid-template-columns: 1fr; gap: 8px; }
+    .stat-card { padding: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 10px; text-align: right; flex-wrap: wrap; }
+    .stat-label { margin-bottom: 0; margin-right: auto; order: -10; }
+    .stat-card .percentile-badge { order: 0; }
+    .stat-card .stat-value.rank { order: 1; }
+    .stat-card .rank-change { order: 1; }
+    .stat-card .stat-sub { order: 0; }
+    .stat-value { font-size: 26px; }
+    .stat-value.rank { font-size: 18px; }
+    .player-row { grid-template-columns: 28px 1fr 44px 44px 40px 36px 20px; gap: 4px; padding: 8px 8px; }
+    .missing-row { grid-template-columns: 28px 1fr 44px 40px 36px; gap: 4px; padding: 8px 8px; }
+    .pos-badge { width: 28px; height: 28px; font-size: 10px; }
+    .player-name { font-size: 12px; }
+    .player-points { font-size: 16px; }
+    .eo-val { font-size: 10px; }
+    .impact-val { font-size: 10px; }
+    .app { padding: 16px 10px 70px; }
+    .header-text h1 { font-size: 19px; }
+    .matchday-table th, .matchday-table td { padding: 8px 8px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo-mark">FPL</div>
+    <div class="header-text">
+      <h1>Live Pulse</h1>
+      <div class="sub">Gameweek Tracker</div>
+    </div>
+  </div>
+  <div class="id-bar">
+    <input type="text" id="managerIdInput" placeholder="Enter your FPL Manager ID" inputmode="numeric" />
+    <button id="loadBtn" onclick="handleLoad()">Track</button>
+  </div>
+  <div id="content">
+    <div class="empty-state">
+      <div class="icon">&#9917;</div>
+      <p>Enter your FPL Manager ID to start tracking.<br>Find it in the URL when you visit your team page.</p>
+      <div class="hint">fantasy.premierleague.com/entry/<strong>ID</strong>/event/...</div>
+    </div>
+  </div>
+</div>
+<div class="refresh-bar"><div class="progress" id="refreshProgress"></div></div>
+
+<script>
+const PROXY = 'https://corsproxy.io/?url=';
+const API = 'https://fantasy.premierleague.com/api';
+const OVERALL_LEAGUE = 314;
+const TOP_N = 10000;
+const ENTRIES_PER_PAGE = 50;
+const CONCURRENCY = 8;
+const LOCAL_RADIUS = 100;
+
+let state = {
+  managerId: null,
+  bootstrapData: null,
+  entryData: null,
+  picksData: null,
+  liveData: null,
+  fixtureData: null,
+  historyData: null,
+  currentEvent: null,
+  refreshTimer: null,
+  refreshInterval: 300,
+  refreshElapsed: 0,
+  paused: false,
+  eoTop10k: null,    // { players: {id: {multiplierSum, eo, ...}}, totalManagers }
+  eoLocal: null,     // same + managers: [{total, eventTotal, picks:[{element,multiplier}]}]
+  eoSampling: false,
+};
+
+const POS_MAP = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+const POS_CLASS = { 1: 'gk', 2: 'def', 3: 'mid', 4: 'fwd' };
+const POS_ORDER = { 1: 0, 2: 1, 3: 2, 4: 3 };
+const CHIP_NAMES = { bboost: 'Bench Boost', '3xc': 'Triple Captain', wildcard: 'Wildcard', freehit: 'Free Hit' };
+
+function saveManagerId(id) { try { localStorage.setItem('fpl_manager_id', id); } catch(e) {} }
+function loadManagerId() { try { return localStorage.getItem('fpl_manager_id') || ''; } catch(e) { return ''; } }
+
+// --- Cache ---
+function cacheKey(gw, type) { return `fpl_eo_v2_${type}_gw${gw}`; }
+function localCacheKey(gw, mid) { return `fpl_eo_v2_local_gw${gw}_m${mid}`; }
+
+function saveCache(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('fpl_eo_') && !k.includes(`gw${state.currentEvent}`)) localStorage.removeItem(k);
+      }
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch(e2) {}
+  }
+}
+function loadCache(key) {
+  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+
+document.getElementById('managerIdInput').value = loadManagerId();
+
+// --- API ---
+async function apiFetch(path) {
+  const url = `${PROXY}${encodeURIComponent(`${API}${path}`)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  return res.json();
+}
+
+// --- Concurrent pool ---
+async function runPool(tasks, concurrency, onProgress) {
+  const results = new Array(tasks.length);
+  let next = 0, completed = 0;
+  async function worker() {
+    while (next < tasks.length) {
+      const idx = next++;
+      try { results[idx] = await tasks[idx](); } catch(e) { results[idx] = null; }
+      completed++;
+      if (onProgress) onProgress(completed, tasks.length);
+    }
+  }
+  const workers = [];
+  for (let i = 0; i < Math.min(concurrency, tasks.length); i++) workers.push(worker());
+  await Promise.all(workers);
+  return results;
+}
+
+// --- Fetch standings pages ---
+async function fetchStandingsPages(startPage, endPage) {
+  const tasks = [];
+  for (let p = startPage; p <= endPage; p++) {
+    const page = p;
+    tasks.push(() => apiFetch(`/leagues-classic/${OVERALL_LEAGUE}/standings/?page_standings=${page}`));
+  }
+  return runPool(tasks, CONCURRENCY);
+}
+
+function extractEntries(pageResults) {
+  const entries = [];
+  for (const res of pageResults) {
+    if (res && res.standings && res.standings.results) {
+      entries.push(...res.standings.results);
+    }
+  }
+  return entries;
+}
+
+// --- Aggregate picks into EO (structured format) ---
+function aggregatePicksStructured(allPicksData) {
+  const players = {};
+  let totalManagers = 0;
+  for (const pd of allPicksData) {
+    if (!pd || !pd.picks) continue;
+    totalManagers++;
+    for (const pick of pd.picks) {
+      if (!players[pick.element]) players[pick.element] = { multiplierSum: 0, selected: 0, captained: 0, tripled: 0 };
+      const p = players[pick.element];
+      p.selected++;
+      p.multiplierSum += pick.multiplier;
+      if (pick.multiplier === 2) p.captained++;
+      if (pick.multiplier === 3) p.tripled++;
+    }
+  }
+  for (const id in players) {
+    players[id].eo = totalManagers > 0 ? (players[id].multiplierSum / totalManagers * 100) : 0;
+  }
+  return { players, totalManagers };
+}
+
+// --- Calculate live GW points for a set of picks ---
+function calcLiveGwPts(picks, liveMap, provBonusMap) {
+  let pts = 0;
+  for (const pick of picks) {
+    pts += getAdjustedPoints(pick.element, liveMap, provBonusMap || {}) * pick.multiplier;
+  }
+  return pts;
+}
+
+// --- Calculate average GW points from EO aggregate + live data ---
+function calcAvgGwPtsFromEo(eoData, liveMap, provBonusMap) {
+  if (!eoData || !eoData.totalManagers) return null;
+  let totalPts = 0;
+  for (const id in eoData.players) {
+    const livePts = getAdjustedPoints(Number(id), liveMap, provBonusMap || {});
+    totalPts += livePts * eoData.players[id].multiplierSum;
+  }
+  return totalPts / eoData.totalManagers;
+}
+
+// --- Calculate effective players / live players from EO ---
+function calcAvgEffectiveFromEo(eoData) {
+  if (!eoData || !eoData.totalManagers) return null;
+  let totalMult = 0;
+  for (const id in eoData.players) totalMult += eoData.players[id].multiplierSum;
+  return totalMult / eoData.totalManagers;
+}
+
+function calcAvgLiveFromEo(eoData, liveTeams) {
+  if (!eoData || !eoData.totalManagers || !liveTeams) return null;
+  let totalMult = 0;
+  for (const id in eoData.players) {
+    if (liveTeams.has(id)) totalMult += eoData.players[id].multiplierSum;
+  }
+  return totalMult / eoData.totalManagers;
+}
+
+// --- Fixture helpers ---
+function buildLiveTeamSet(fixtureData, playerMap) {
+  // Returns a Set of player ID strings whose match is currently in progress
+  const liveTeamIds = new Set();
+  if (!fixtureData) return liveTeamIds;
+  for (const fix of fixtureData) {
+    if (fix.started && !fix.finished_provisional) {
+      liveTeamIds.add(fix.team_h);
+      liveTeamIds.add(fix.team_a);
+    }
+  }
+  // Map player IDs to this set
+  const livePlayerIds = new Set();
+  if (playerMap) {
+    for (const id in playerMap) {
+      if (liveTeamIds.has(playerMap[id].team)) livePlayerIds.add(String(id));
+    }
+  }
+  return livePlayerIds;
+}
+
+function calcMyLiveAndPlaying(picks, livePlayerIds) {
+  let effective = 0, live = 0;
+  for (const pick of picks) {
+    effective += pick.multiplier;
+    if (pick.multiplier > 0 && livePlayerIds.has(String(pick.element))) {
+      live += pick.multiplier;
+    }
+  }
+  return { effective, live };
+}
+
+// Build set of player IDs whose match has started (including finished)
+function buildStartedTeamSet(fixtureData, playerMap) {
+  const startedTeamIds = new Set();
+  if (!fixtureData) return new Set();
+  for (const fix of fixtureData) {
+    if (fix.started) {
+      startedTeamIds.add(fix.team_h);
+      startedTeamIds.add(fix.team_a);
+    }
+  }
+  const startedPlayerIds = new Set();
+  if (playerMap) {
+    for (const id in playerMap) {
+      if (startedTeamIds.has(playerMap[id].team)) startedPlayerIds.add(String(id));
+    }
+  }
+  return startedPlayerIds;
+}
+
+function calcMyStartedAndPlaying(picks, startedPlayerIds) {
+  let started = 0, playing = 0;
+  for (const pick of picks) {
+    playing += pick.multiplier;
+    if (pick.multiplier > 0 && startedPlayerIds.has(String(pick.element))) started += pick.multiplier;
+  }
+  return { started, playing };
+}
+
+function calcAvgStartedFromEo(eoData, startedPlayerIds) {
+  if (!eoData || !eoData.totalManagers) return null;
+  let totalMult = 0;
+  for (const id in eoData.players) {
+    if (startedPlayerIds.has(id)) totalMult += eoData.players[id].multiplierSum;
+  }
+  return totalMult / eoData.totalManagers;
+}
+
+// Calculate provisional bonus from BPS in fixtures (for live matches)
+function calcProvisionalBonus(fixtureData) {
+  const bonusMap = {};
+  if (!fixtureData) return bonusMap;
+  for (const fix of fixtureData) {
+    if (!fix.started) continue;
+    const bpsStat = fix.stats?.find(s => s.identifier === 'bps');
+    if (!bpsStat) continue;
+    const allBps = [];
+    for (const entry of (bpsStat.h || [])) allBps.push({ element: entry.element, value: entry.value });
+    for (const entry of (bpsStat.a || [])) allBps.push({ element: entry.element, value: entry.value });
+    allBps.sort((a, b) => b.value - a.value);
+    if (allBps.length === 0) continue;
+    const uniqueBps = [...new Set(allBps.map(x => x.value))];
+    const bonusLevels = [3, 2, 1];
+    let levelIdx = 0;
+    for (const bpsVal of uniqueBps) {
+      if (levelIdx >= bonusLevels.length) break;
+      const players = allBps.filter(x => x.value === bpsVal);
+      const bonus = bonusLevels[levelIdx];
+      for (const p of players) {
+        bonusMap[p.element] = (bonusMap[p.element] || 0) + bonus;
+      }
+      levelIdx += players.length;
+    }
+  }
+  return bonusMap;
+}
+
+// Get adjusted points for a player (includes provisional bonus if not already counted)
+function getAdjustedPoints(elementId, liveMap, provBonusMap) {
+  const el = liveMap[elementId];
+  if (!el) return 0;
+  let pts = el.stats.total_points;
+  if (el.stats.bonus === 0 && provBonusMap[elementId]) {
+    pts += provBonusMap[elementId];
+  }
+  return pts;
+}
+
+// Get points breakdown for a player from explain data
+function getPlayerBreakdown(elementId, liveMap, provBonusMap) {
+  const el = liveMap[elementId];
+  if (!el) return [];
+  const STAT_LABELS = {
+    'goals_scored': 'Goals',
+    'assists': 'Assists',
+    'clean_sheets': 'Clean Sheets',
+    'saves': 'Saves',
+    'bonus': 'Bonus',
+    'penalties_saved': 'Penalties Saved',
+    'minutes': 'Minutes Played',
+    'goals_conceded': 'Goals Conceded',
+    'yellow_cards': 'Yellow Cards',
+    'red_cards': 'Red Cards',
+    'own_goals': 'Own Goals',
+    'penalties_missed': 'Penalties Missed',
+  };
+  const USER_STAT_ORDER = ['goals_scored', 'assists', 'clean_sheets', 'saves', 'bonus', 'penalties_saved', 'minutes', 'goals_conceded', 'yellow_cards', 'red_cards', 'own_goals', 'penalties_missed'];
+  const stats = {};
+  if (el.explain) {
+    for (const fix of el.explain) {
+      for (const s of fix.stats) {
+        if (!stats[s.identifier]) stats[s.identifier] = { value: 0, points: 0 };
+        stats[s.identifier].value += s.value;
+        stats[s.identifier].points += s.points;
+      }
+    }
+  }
+  // Add provisional bonus if not already present
+  const provBonus = provBonusMap[elementId] || 0;
+  if (provBonus > 0 && el.stats.bonus === 0) {
+    if (!stats['bonus']) stats['bonus'] = { value: 0, points: 0 };
+    stats['bonus'].value += provBonus;
+    stats['bonus'].points += provBonus;
+  }
+  // Build ordered array, filter out zero-point stats
+  const result = [];
+  for (const id of USER_STAT_ORDER) {
+    if (stats[id] && stats[id].points !== 0) {
+      result.push({ identifier: id, label: STAT_LABELS[id] || id, value: stats[id].value, points: stats[id].points });
+    }
+  }
+  return result;
+}
+
+// --- Live rank estimation from local sample ---
+function estimateLiveRankDelta(eoLocal, liveMap, userGwPts, provBonusMap) {
+  if (!eoLocal || !eoLocal.managers || eoLocal.managers.length === 0) return null;
+  let aboveCount = 0;
+  for (const mgr of eoLocal.managers) {
+    const mgrLiveGwPts = calcLiveGwPts(mgr.picks, liveMap, provBonusMap);
+    const mgrLiveTotal = mgr.total - mgr.eventTotal + mgrLiveGwPts;
+    if (mgrLiveTotal > userGwPts) aboveCount++;
+  }
+  // User was ~in the middle of the sample. Delta = how many fewer are now above them.
+  return LOCAL_RADIUS - aboveCount;
+}
+
+// --- EO Progress UI ---
+function updateEoProgress(fraction, label) {
+  const el = document.getElementById('eoProgressBanner');
+  if (!el) return;
+  const pct = Math.round(fraction * 100);
+  el.querySelector('.eo-prog-fill').style.width = pct + '%';
+  el.querySelector('.eo-prog-pct').textContent = pct + '%';
+  if (label) el.querySelector('.eo-prog-label').textContent = label;
+}
+
+function showEoComplete() {
+  const el = document.getElementById('eoProgressBanner');
+  if (el) {
+    el.outerHTML = `<div class="eo-done-banner" id="eoDoneBanner">&#10003; EO data loaded</div>`;
+    setTimeout(() => { const d = document.getElementById('eoDoneBanner'); if (d) d.style.display = 'none'; }, 5000);
+  }
+}
+
+// --- Main EO sampling ---
+async function sampleEo(gw) {
+  if (state.eoSampling && state._eoSamplingStarted) return;
+  state.eoSampling = true;
+  state._eoSamplingStarted = true;
+  try {
+    // Phase 1: Top 10k
+    const topCached = loadCache(cacheKey(gw, 'top10k'));
+    if (topCached && topCached.players) {
+      state.eoTop10k = topCached;
+      render();
+    } else {
+      // Fetch IDs
+      const pages = Math.ceil(TOP_N / ENTRIES_PER_PAGE);
+      updateEoProgress(0, 'Fetching top 10k IDs...');
+      const idPageResults = await runPool(
+        Array.from({length: pages}, (_, i) => () => apiFetch(`/leagues-classic/${OVERALL_LEAGUE}/standings/?page_standings=${i+1}`)),
+        CONCURRENCY,
+        (done, total) => updateEoProgress(done / total * 0.1, `Fetching IDs: ${done}/${total}`)
+      );
+      const managerIds = extractEntries(idPageResults).map(e => e.entry).slice(0, TOP_N);
+
+      // Fetch picks
+      const pickTasks = managerIds.map(id => () => apiFetch(`/entry/${id}/event/${gw}/picks/`));
+      const allPicks = await runPool(pickTasks, CONCURRENCY, (done, total) => {
+        updateEoProgress(0.1 + (done / total) * 0.85, `Sampling top 10k: ${done.toLocaleString()}/${total.toLocaleString()}`);
+      });
+
+      state.eoTop10k = aggregatePicksStructured(allPicks);
+      saveCache(cacheKey(gw, 'top10k'), state.eoTop10k);
+      render();
+    }
+
+    // Phase 2: Local EO from managers near user's overall rank (always refetch for fresh baselines)
+    const userRank = state.picksData?.entry_history?.overall_rank || state.entryData?.summary_overall_rank;
+    if (userRank) {
+      {
+        updateEoProgress(0.96, 'Fetching local managers...');
+        const userId = Number(state.managerId);
+        let localEntries = [];
+
+        try {
+          const startRank = Math.max(1, userRank - LOCAL_RADIUS);
+          const endRank = userRank + LOCAL_RADIUS;
+          const startPage = Math.max(1, Math.ceil(startRank / ENTRIES_PER_PAGE));
+          const endPage = Math.ceil(endRank / ENTRIES_PER_PAGE);
+          const overallResults = await fetchStandingsPages(startPage, endPage);
+          localEntries = extractEntries(overallResults)
+            .filter(e => e.entry !== userId)
+            .slice(0, LOCAL_RADIUS * 2);
+        } catch(e) {
+          console.warn('Local EO fetch failed:', e);
+        }
+
+        if (localEntries.length > 0) {
+          const localPickTasks = localEntries.map(e => {
+            const entry = e;
+            return () => apiFetch(`/entry/${entry.entry}/event/${gw}/picks/`).then(pd => ({ entry, pd }));
+          });
+          const localResults = await runPool(localPickTasks, CONCURRENCY, (done, total) => {
+            updateEoProgress(0.96 + (done / total) * 0.04, `Local: ${done}/${total}`);
+          });
+
+          const validPicks = [];
+          const managerData = [];
+          for (const r of localResults) {
+            if (r && r.pd && r.pd.picks) {
+              validPicks.push(r.pd);
+              managerData.push({
+                total: r.entry.total || 0,
+                eventTotal: r.entry.event_total || 0,
+                picks: r.pd.picks.map(p => ({ element: p.element, multiplier: p.multiplier })),
+              });
+            }
+          }
+          const localEo = aggregatePicksStructured(validPicks);
+          localEo.managers = managerData;
+          state.eoLocal = localEo;
+          render();
+        }
+      }
+    }
+
+    showEoComplete();
+  } catch(e) {
+    console.error('EO sampling error:', e);
+  } finally {
+    state.eoSampling = false;
+    state._eoSamplingStarted = false;
+  }
+}
+
+// --- Main load ---
+async function handleLoad() {
+  const input = document.getElementById('managerIdInput');
+  const id = input.value.trim();
+  if (!id || isNaN(id)) { showError('Please enter a valid numeric Manager ID.'); return; }
+  state.managerId = id;
+  saveManagerId(id);
+  state.eoTop10k = null;
+  state.eoLocal = null;
+  stopAutoRefresh();
+  await loadData();
+  if (!state.paused) startAutoRefresh();
+}
+
+document.getElementById('managerIdInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLoad(); });
+
+async function loadData() {
+  showLoading();
+  try {
+    if (!state.bootstrapData) state.bootstrapData = await apiFetch('/bootstrap-static/');
+
+    const currentEvent = state.bootstrapData.events.find(e => e.is_current);
+    if (!currentEvent) throw new Error('No active gameweek found.');
+    state.currentEvent = currentEvent.id;
+
+    const [entryData, picksData, liveData, fixtureData, historyData] = await Promise.all([
+      apiFetch(`/entry/${state.managerId}/`),
+      apiFetch(`/entry/${state.managerId}/event/${state.currentEvent}/picks/`),
+      apiFetch(`/event/${state.currentEvent}/live/`),
+      apiFetch(`/fixtures/?event=${state.currentEvent}`),
+      apiFetch(`/entry/${state.managerId}/history/`),
+    ]);
+
+    state.entryData = entryData;
+    state.picksData = picksData;
+    state.liveData = liveData;
+    state.fixtureData = fixtureData;
+    state.historyData = historyData;
+
+    // Load cached top 10k EO (picks don't change mid-GW, safe to cache)
+    const ct = loadCache(cacheKey(state.currentEvent, 'top10k'));
+    if (ct && ct.players) state.eoTop10k = ct;
+    // Local EO is never cached — always refetch so rival baselines stay current
+
+    // Flag sampling before render so the progress banner appears immediately
+    if (!state.eoTop10k || !state.eoLocal) state.eoSampling = true;
+
+    render();
+
+    if (state.eoSampling) sampleEo(state.currentEvent);
+  } catch (err) {
+    console.error(err);
+    showError(err.message || 'Failed to load data.');
+  }
+}
+
+function showLoading() {
+  document.getElementById('content').innerHTML = `<div class="loading-state"><div class="spinner"></div><div>Loading live data&hellip;</div></div>`;
+}
+function showError(msg) {
+  document.getElementById('content').innerHTML = `<div class="error-state">${msg}</div>`;
+}
+function formatRank(n) { return n == null ? '\u2014' : n.toLocaleString(); }
+function formatEo(eoData, pid) {
+  if (!eoData || !eoData.players || !eoData.players[pid]) return null;
+  return eoData.players[pid].eo.toFixed(1);
+}
+
+// --- Render ---
+function render() {
+  const { bootstrapData, entryData, picksData, liveData, fixtureData, currentEvent, eoTop10k, eoLocal } = state;
+  const playerMap = {};
+  bootstrapData.elements.forEach(p => playerMap[p.id] = p);
+  const teamMap = {};
+  bootstrapData.teams.forEach(t => teamMap[t.id] = t);
+  const liveMap = {};
+  liveData.elements.forEach(el => liveMap[el.id] = el);
+
+  const picks = picksData.picks;
+  const transferCost = picksData.entry_history.event_transfers_cost || 0;
+
+  // Calculate provisional bonus from BPS
+  const provBonusMap = calcProvisionalBonus(fixtureData);
+
+  let gwPointsRaw = 0;
+  picks.forEach(pick => {
+    gwPointsRaw += getAdjustedPoints(pick.element, liveMap, provBonusMap) * pick.multiplier;
+  });
+  const gwPoints = gwPointsRaw - transferCost;
+
+  // Use entry history to get the previous GW's final rank and total (unambiguous baseline)
+  const prevGwHistory = state.historyData?.current?.find(h => h.event === currentEvent - 1);
+  const prevRank = prevGwHistory?.overall_rank || null;
+  const userPreGwTotal = prevGwHistory ? prevGwHistory.total_points : 0;
+  const userLiveTotal = userPreGwTotal + gwPoints;
+
+  // Current rank: use the API's own rank for this GW (updated periodically by FPL)
+  const apiRank = picksData.entry_history.overall_rank;
+
+  // Live rank estimation from local sample (supplement if API rank not yet available)
+  let liveRankDelta = estimateLiveRankDelta(eoLocal, liveMap, userLiveTotal, provBonusMap);
+  let estimatedLiveRank = (prevRank && liveRankDelta != null) ? Math.max(1, prevRank - liveRankDelta) : null;
+
+  const displayRank = apiRank || estimatedLiveRank || entryData.summary_overall_rank;
+  const rankDelta = prevRank && displayRank ? prevRank - displayRank : null;
+
+  const activeChip = picksData.active_chip;
+
+  // Fixture / live info
+  const livePlayerIds = buildLiveTeamSet(fixtureData, playerMap);
+  const startedPlayerIds = buildStartedTeamSet(fixtureData, playerMap);
+  const myStartedPlaying = calcMyStartedAndPlaying(picks, startedPlayerIds);
+
+  // Averages from EO
+  const top10kAvgPts = calcAvgGwPtsFromEo(eoTop10k, liveMap, provBonusMap);
+  const localAvgPts = calcAvgGwPtsFromEo(eoLocal, liveMap, provBonusMap);
+  const top10kAvgEff = calcAvgEffectiveFromEo(eoTop10k);
+  const localAvgEff = calcAvgEffectiveFromEo(eoLocal);
+  const top10kAvgLive = calcAvgLiveFromEo(eoTop10k, livePlayerIds);
+  const localAvgLive = calcAvgLiveFromEo(eoLocal, livePlayerIds);
+  const top10kAvgStarted = calcAvgStartedFromEo(eoTop10k, startedPlayerIds);
+  const localAvgStarted = calcAvgStartedFromEo(eoLocal, startedPlayerIds);
+
+  // Sort picks
+  const startingPicks = picks.filter(p => p.position <= 11);
+  const benchPicks = picks.filter(p => p.position > 11);
+  const sortByPos = (a, b) => {
+    return (POS_ORDER[playerMap[a.element].element_type] - POS_ORDER[playerMap[b.element].element_type]) || (a.position - b.position);
+  };
+  startingPicks.sort(sortByPos);
+  benchPicks.sort((a, b) => a.position - b.position);
+
+  // User's set of owned player IDs
+  const ownedSet = new Set(picks.map(p => p.element));
+
+  let html = '';
+
+  // Status bar
+  const gw = bootstrapData.events.find(e => e.id === currentEvent);
+  html += `<div class="status-bar">
+    <span class="team-name">${escHtml(entryData.name)}</span>
+    <span>
+      <span class="live-dot${state.paused ? ' paused' : ''}"></span>GW${currentEvent}${gw && gw.finished ? ' \u2014 Final' : state.paused ? ' \u2014 Paused' : ' \u2014 Live'}
+      <button class="pause-btn${state.paused ? ' paused' : ''}" id="pauseBtn" onclick="togglePause()">${state.paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}</button>
+      <div class="auto-refresh-label">Auto-refreshes every 5 minutes</div>
+    </span>
+  </div>`;
+
+  // Summary cards
+  const arrowUp = `<svg viewBox="0 0 12 12"><path d="M6 2L10 8H2L6 2Z" fill="currentColor"/></svg>`;
+  const arrowDown = `<svg viewBox="0 0 12 12"><path d="M6 10L2 4H10L6 10Z" fill="currentColor"/></svg>`;
+  let rankArrowHtml = '';
+  if (rankDelta != null && rankDelta > 0) {
+    rankArrowHtml = `<div class="rank-change up">${arrowUp}${formatRank(rankDelta)}</div>`;
+  } else if (rankDelta != null && rankDelta < 0) {
+    rankArrowHtml = `<div class="rank-change down">${arrowDown}${formatRank(Math.abs(rankDelta))}</div>`;
+  } else if (rankDelta === 0) {
+    rankArrowHtml = `<div class="rank-change neutral">\u2014</div>`;
+  }
+
+  const rankSubText = prevRank ? `was ${formatRank(prevRank)}` : (currentEvent === 1 ? 'first gameweek' : 'updated after matches');
+  const isEstimated = estimatedLiveRank && !apiRank;
+
+  // Percentile calculation
+  const totalPlayers = bootstrapData.total_players || 0;
+  const percentile = (displayRank && totalPlayers > 0) ? ((displayRank / totalPlayers) * 100) : null;
+  const percentileHtml = percentile != null
+    ? `<div class="percentile-badge">Top ${percentile < 1 ? percentile.toFixed(2) : percentile < 10 ? percentile.toFixed(1) : Math.round(percentile)}%</div>`
+    : '';
+
+  // Rank change label coloring
+  const rankLabelClass = rankDelta != null && rankDelta > 0 ? ' rank-up' : rankDelta != null && rankDelta < 0 ? ' rank-down' : '';
+
+  html += `<div class="summary-grid">
+    <div class="stat-card">
+      <div class="stat-label">GW Points</div>
+      <div class="stat-value points">${gwPoints}</div>
+      ${transferCost > 0 ? `<div class="stat-sub">${gwPointsRaw} \u2212 ${transferCost} hit</div>` : ''}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Overall Rank${isEstimated ? ' (est)' : ''}</div>
+      <div class="stat-value rank">${formatRank(displayRank)}</div>
+      ${percentileHtml}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label${rankLabelClass}">Rank Change</div>
+      ${rankArrowHtml || '<div class="stat-value rank" style="font-size:16px;color:var(--text-muted)">\u2014</div>'}
+      <div class="stat-sub">${rankSubText}</div>
+    </div>
+  </div>`;
+
+  if (activeChip) html += `<div class="chip-banner">${CHIP_NAMES[activeChip] || activeChip} Active</div>`;
+  if (transferCost > 0) html += `<div class="hit-banner">\u2212${transferCost} point${transferCost > 1 ? 's' : ''} transfer cost</div>`;
+
+  // EO progress
+  if (state.eoSampling && (!eoTop10k || !eoLocal)) {
+    html += `<div class="eo-progress-banner" id="eoProgressBanner">
+      <div class="eo-prog-label">Loading EO data...</div>
+      <div class="eo-prog-bar"><div class="eo-prog-fill" style="width:0%"></div></div>
+      <div class="eo-prog-pct">0%</div>
+    </div>`;
+  }
+
+  // --- Matchday comparison table ---
+  const fmtN = (v) => v != null ? v.toFixed(1) : null;
+  html += `<div class="section-label">Matchday Comparison</div>`;
+  html += `<table class="matchday-table"><thead><tr>
+    <th></th><th>You</th><th>Local 200</th><th>Top 10k</th>
+  </tr></thead><tbody>`;
+
+  // Row: Started / Playing
+  html += `<tr>
+    <td class="row-label">Started / Playing</td>
+    <td class="val-you">${myStartedPlaying.started} / ${myStartedPlaying.playing}</td>
+    <td class="${localAvgStarted != null ? 'val-local' : 'val-pending'}">${localAvgStarted != null ? `${fmtN(localAvgStarted)} / ${fmtN(localAvgEff)}` : '\u2026'}</td>
+    <td class="${top10kAvgStarted != null ? 'val-top10k' : 'val-pending'}">${top10kAvgStarted != null ? `${fmtN(top10kAvgStarted)} / ${fmtN(top10kAvgEff)}` : '\u2026'}</td>
+  </tr>`;
+
+  // Row: GW Points
+  html += `<tr>
+    <td class="row-label">GW Points</td>
+    <td class="val-you">${gwPoints}</td>
+    <td class="${localAvgPts != null ? 'val-local' : 'val-pending'}">${localAvgPts != null ? fmtN(localAvgPts) : '\u2026'}</td>
+    <td class="${top10kAvgPts != null ? 'val-top10k' : 'val-pending'}">${top10kAvgPts != null ? fmtN(top10kAvgPts) : '\u2026'}</td>
+  </tr>`;
+
+  // Row: vs Average
+  if (localAvgPts != null || top10kAvgPts != null) {
+    const localDelta = localAvgPts != null ? gwPoints - localAvgPts : null;
+    const topDelta = top10kAvgPts != null ? gwPoints - top10kAvgPts : null;
+    const fmtDelta = (d) => {
+      if (d == null) return '\u2026';
+      const s = d >= 0 ? '+' : '';
+      return `${s}${d.toFixed(1)}`;
+    };
+    const deltaClass = (d, base) => {
+      if (d == null) return 'val-pending';
+      return d >= 0 ? 'val-you' : 'val-pending';
+    };
+    html += `<tr>
+      <td class="row-label">vs Average</td>
+      <td></td>
+      <td class="${deltaClass(localDelta)}" style="color:${localDelta != null && localDelta >= 0 ? 'var(--accent-green)' : localDelta != null ? 'var(--accent-magenta)' : ''}">${fmtDelta(localDelta)}</td>
+      <td style="color:${topDelta != null && topDelta >= 0 ? 'var(--accent-green)' : topDelta != null ? 'var(--accent-magenta)' : ''}">${fmtDelta(topDelta)}</td>
+    </tr>`;
+  }
+
+  html += `</tbody></table>`;
+
+  // --- Starting XI ---
+  html += `<div class="squad-section"><div class="section-label">Starting XI</div>`;
+  startingPicks.forEach((pick, i) => { html += renderPlayerRow(pick, playerMap, teamMap, liveMap, false, i, provBonusMap, livePlayerIds); });
+  html += `</div>`;
+
+  // --- Bench ---
+  html += `<div class="bench-divider">Bench</div><div class="squad-section">`;
+  benchPicks.forEach((pick, i) => { html += renderPlayerRow(pick, playerMap, teamMap, liveMap, true, i + 11, provBonusMap, livePlayerIds); });
+  html += `</div>`;
+
+  // --- Missing high-EO players ---
+  if (eoTop10k && eoTop10k.players) {
+    const missingPlayers = [];
+    for (const pid in eoTop10k.players) {
+      if (ownedSet.has(Number(pid))) continue;
+      const eoEntry = eoTop10k.players[pid];
+      if (eoEntry.eo < 5) continue; // skip very low EO
+      const player = playerMap[pid];
+      if (!player) continue;
+      const pts = getAdjustedPoints(Number(pid), liveMap, provBonusMap);
+      const impact = (eoEntry.eo / 100) * pts;
+      missingPlayers.push({ pid: Number(pid), player, eo: eoEntry.eo, pts, impact });
+    }
+    // Sort by impact descending (most damaging first), then by EO
+    missingPlayers.sort((a, b) => b.impact - a.impact || b.eo - a.eo);
+    const topMissing = missingPlayers.slice(0, 10);
+
+    if (topMissing.length > 0) {
+      html += `<div class="section-label" style="margin-top:28px">Missing Players (Highest EO Impact)</div>`;
+      html += `<div class="squad-section">`;
+      topMissing.forEach((m, i) => {
+        const team = teamMap[m.player.team];
+        const posLabel = POS_MAP[m.player.element_type];
+        const posClass = POS_CLASS[m.player.element_type];
+        const impactStr = m.impact > 0 ? `-${m.impact.toFixed(1)}` : '0';
+        const impactClass = m.impact > 0 ? 'neg' : 'zero';
+        html += `<div class="missing-row" style="animation-delay:${i * 0.04}s">
+          <div class="pos-badge ${posClass}">${posLabel}</div>
+          <div class="player-info">
+            <div class="player-name">${escHtml(m.player.web_name)}</div>
+            <div class="player-team">${escHtml(team ? team.short_name : '')}</div>
+          </div>
+          <div class="eo-col top10k"><span class="eo-label">EO</span><span class="eo-val">${m.eo.toFixed(1)}%</span></div>
+          <div class="impact-col"><span class="impact-label">Impact</span><span class="impact-val ${impactClass}">${impactStr}</span></div>
+          <div class="player-points">${m.pts}</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+  }
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function renderPlayerRow(pick, playerMap, teamMap, liveMap, isBench, animIndex, provBonusMap, livePlayerIds) {
+  const player = playerMap[pick.element];
+  const team = teamMap[player.team];
+  const rawPts = getAdjustedPoints(pick.element, liveMap, provBonusMap || {});
+  const effectivePts = rawPts * pick.multiplier;
+  const posLabel = POS_MAP[player.element_type];
+  const posClass = POS_CLASS[player.element_type];
+  const isLive = livePlayerIds && livePlayerIds.has(String(pick.element));
+
+  let badge = '';
+  if (pick.is_captain && pick.multiplier === 3) badge = '<span class="captain-badge tc">TC</span>';
+  else if (pick.is_captain) badge = '<span class="captain-badge c">C</span>';
+  else if (pick.is_vice_captain) badge = '<span class="captain-badge vc">V</span>';
+
+  const liveDot = isLive ? '<span class="player-live-dot"></span>' : '';
+
+  const localEo = formatEo(state.eoLocal, pick.element);
+  const topEo = formatEo(state.eoTop10k, pick.element);
+
+  const localEoHtml = localEo !== null
+    ? `<div class="eo-col local"><span class="eo-label">Local</span><span class="eo-val">${localEo}%</span></div>`
+    : `<div class="eo-col pending"><span class="eo-label">Local</span><span class="eo-val">\u2026</span></div>`;
+  const topEoHtml = topEo !== null
+    ? `<div class="eo-col top10k"><span class="eo-label">Top 10k</span><span class="eo-val">${topEo}%</span></div>`
+    : `<div class="eo-col pending"><span class="eo-label">Top 10k</span><span class="eo-val">\u2026</span></div>`;
+
+  // Impact: for captain (mult=2), use (2 - EO/100) * rawPts; otherwise (1 - EO/100) * rawPts
+  let impactHtml;
+  if (topEo !== null) {
+    const eoFrac = parseFloat(topEo) / 100;
+    const impactVal = isBench ? (1 - eoFrac) * rawPts : (pick.multiplier - eoFrac) * rawPts;
+    const impactStr = impactVal >= 0 ? `+${impactVal.toFixed(1)}` : impactVal.toFixed(1);
+    const impactClass = impactVal > 0 ? 'pos' : impactVal < 0 ? 'neg' : 'zero';
+    impactHtml = `<div class="impact-col"><span class="impact-label">Impact</span><span class="impact-val ${impactClass}">${impactStr}</span></div>`;
+  } else {
+    impactHtml = `<div class="impact-col"><span class="impact-label">Impact</span><span class="impact-val zero">\u2026</span></div>`;
+  }
+
+  return `<div class="player-row${isBench ? ' bench' : ''}" style="animation-delay:${animIndex * 0.04}s">
+    <div class="pos-badge ${posClass}">${posLabel}</div>
+    <div class="player-info">
+      <div class="player-name">${liveDot}${escHtml(player.web_name)}${badge}</div>
+      <div class="player-team">${escHtml(team ? team.short_name : '')}</div>
+    </div>
+    ${localEoHtml}
+    ${topEoHtml}
+    ${impactHtml}
+    <div class="player-points">
+      ${isBench ? rawPts : effectivePts}
+      ${!isBench && pick.multiplier > 1 ? `<span class="multiplier">\u00d7${pick.multiplier}</span>` : ''}
+    </div>
+    <button class="detail-btn" onclick="openPlayerModal(${pick.element}, ${pick.multiplier}, ${isBench})" title="View breakdown">&#9432;</button>
+  </div>`;
+}
+
+function escHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+// --- Player detail modal ---
+function openPlayerModal(elementId, multiplier, isBench) {
+  const playerMap = {};
+  state.bootstrapData.elements.forEach(p => playerMap[p.id] = p);
+  const teamMap = {};
+  state.bootstrapData.teams.forEach(t => teamMap[t.id] = t);
+  const liveMap = {};
+  state.liveData.elements.forEach(el => liveMap[el.id] = el);
+  const provBonusMap = calcProvisionalBonus(state.fixtureData);
+
+  const player = playerMap[elementId];
+  const team = teamMap[player.team];
+  const rawPts = getAdjustedPoints(elementId, liveMap, provBonusMap);
+  const displayPts = isBench ? rawPts : rawPts * multiplier;
+  const breakdown = getPlayerBreakdown(elementId, liveMap, provBonusMap);
+
+  let breakdownHtml = '';
+  for (const item of breakdown) {
+    const ptsClass = item.points < 0 ? 'neg' : '';
+    breakdownHtml += `<div class="breakdown-row">
+      <div class="breakdown-stat">${escHtml(item.label)}: <span class="breakdown-count">${item.value}</span></div>
+      <div class="breakdown-pts ${ptsClass}">${item.points > 0 ? '+' : ''}${item.points} pts</div>
+    </div>`;
+  }
+
+  if (breakdown.length === 0) {
+    breakdownHtml = '<div style="text-align:center;color:var(--text-muted);padding:16px 0;font-size:13px;">No points scored yet</div>';
+  }
+
+  const multLabel = !isBench && multiplier > 1 ? ` <span>\u00d7${multiplier} = ${displayPts}</span>` : '';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'playerModal';
+  modal.innerHTML = `<div class="modal-card">
+    <button class="modal-close" onclick="closePlayerModal()">&times;</button>
+    <div class="modal-title">${escHtml(player.web_name)}</div>
+    <div class="modal-subtitle">${escHtml(team ? team.short_name : '')} &middot; ${POS_MAP[player.element_type]}</div>
+    <div class="modal-total">${rawPts} pts${multLabel}</div>
+    ${breakdownHtml}
+  </div>`;
+  modal.addEventListener('click', (e) => { if (e.target === modal) closePlayerModal(); });
+  document.body.appendChild(modal);
+}
+
+function closePlayerModal() {
+  const modal = document.getElementById('playerModal');
+  if (modal) modal.remove();
+}
+
+// --- Auto-refresh ---
+function startAutoRefresh() {
+  stopAutoRefresh();
+  state.refreshElapsed = 0;
+  const prog = document.getElementById('refreshProgress');
+  prog.style.transition = 'none'; prog.style.width = '0%';
+
+  state.refreshTimer = setInterval(async () => {
+    state.refreshElapsed++;
+    const pct = (state.refreshElapsed / state.refreshInterval) * 100;
+    prog.style.transition = 'width 1s linear'; prog.style.width = pct + '%';
+
+    if (state.refreshElapsed >= state.refreshInterval) {
+      state.refreshElapsed = 0;
+      prog.style.transition = 'none'; prog.style.width = '0%';
+      try {
+        const [picksData, liveData, fixtureData, entryData, bootstrapData] = await Promise.all([
+          apiFetch(`/entry/${state.managerId}/event/${state.currentEvent}/picks/`),
+          apiFetch(`/event/${state.currentEvent}/live/`),
+          apiFetch(`/fixtures/?event=${state.currentEvent}`),
+          apiFetch(`/entry/${state.managerId}/`),
+          apiFetch('/bootstrap-static/'),
+        ]);
+        state.picksData = picksData;
+        state.liveData = liveData;
+        state.fixtureData = fixtureData;
+        state.entryData = entryData;
+        state.bootstrapData = bootstrapData;
+        render();
+        // Re-sample local EO with fresh rival baselines
+        state.eoLocal = null;
+        state.eoSampling = true;
+        sampleEo(state.currentEvent);
+      } catch(e) { console.warn('Refresh failed:', e); }
+    }
+  }, 1000);
+}
+
+function stopAutoRefresh() {
+  if (state.refreshTimer) { clearInterval(state.refreshTimer); state.refreshTimer = null; }
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  if (state.paused) stopAutoRefresh(); else startAutoRefresh();
+  const btn = document.getElementById('pauseBtn');
+  const dot = document.querySelector('.live-dot');
+  if (btn) { btn.textContent = state.paused ? 'Resume auto-refresh' : 'Pause auto-refresh'; btn.classList.toggle('paused', state.paused); }
+  if (dot) dot.classList.toggle('paused', state.paused);
+}
+
+// Auto-load
+(function init() {
+  const saved = loadManagerId();
+  if (saved) { state.managerId = saved; loadData().then(() => startAutoRefresh()); }
+})();
+</script>
+</body>
+</html>
