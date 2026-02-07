@@ -810,37 +810,63 @@ function showEoComplete() {
   }
 }
 
+// --- Load pre-computed top 10k EO from static JSON ---
+async function loadPrecomputedEo(gw) {
+  try {
+    // Try loading from the repo's data directory (works on GitHub Pages or any static host)
+    const res = await fetch(`data/eo-top10k.json?v=${Date.now()}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // Only use if it matches the current gameweek
+    if (data.gameweek !== gw) {
+      console.log(`Pre-computed EO is for GW${data.gameweek}, need GW${gw}. Skipping.`);
+      return null;
+    }
+    console.log(`Loaded pre-computed EO: ${data.totalManagers} managers, updated ${data.updatedAt}`);
+    return data;
+  } catch (e) {
+    console.warn('Could not load pre-computed EO:', e.message);
+    return null;
+  }
+}
+
 // --- Main EO sampling ---
 async function sampleEo(gw) {
   if (state.eoSampling && state._eoSamplingStarted) return;
   state.eoSampling = true;
   state._eoSamplingStarted = true;
   try {
-    // Phase 1: Top 10k
-    const topCached = loadCache(cacheKey(gw, 'top10k'));
-    if (topCached && topCached.players) {
-      state.eoTop10k = topCached;
+    // Phase 1: Top 10k — try pre-computed file first, then localStorage, then live sampling
+    const precomputed = await loadPrecomputedEo(gw);
+    if (precomputed && precomputed.players) {
+      state.eoTop10k = precomputed;
+      saveCache(cacheKey(gw, 'top10k'), precomputed);
       render();
     } else {
-      // Fetch IDs
-      const pages = Math.ceil(TOP_N / ENTRIES_PER_PAGE);
-      updateEoProgress(0, 'Fetching top 10k IDs...');
-      const idPageResults = await runPool(
-        Array.from({length: pages}, (_, i) => () => apiFetch(`/leagues-classic/${OVERALL_LEAGUE}/standings/?page_standings=${i+1}`)),
-        CONCURRENCY,
-        (done, total) => updateEoProgress(done / total * 0.1, `Fetching IDs: ${done}/${total}`)
-      );
-      const managerIds = extractEntries(idPageResults).map(e => e.entry).slice(0, TOP_N);
+      const topCached = loadCache(cacheKey(gw, 'top10k'));
+      if (topCached && topCached.players) {
+        state.eoTop10k = topCached;
+        render();
+      } else {
+        // Fallback: live client-side sampling
+        const pages = Math.ceil(TOP_N / ENTRIES_PER_PAGE);
+        updateEoProgress(0, 'Fetching top 10k IDs...');
+        const idPageResults = await runPool(
+          Array.from({length: pages}, (_, i) => () => apiFetch(`/leagues-classic/${OVERALL_LEAGUE}/standings/?page_standings=${i+1}`)),
+          CONCURRENCY,
+          (done, total) => updateEoProgress(done / total * 0.1, `Fetching IDs: ${done}/${total}`)
+        );
+        const managerIds = extractEntries(idPageResults).map(e => e.entry).slice(0, TOP_N);
 
-      // Fetch picks
-      const pickTasks = managerIds.map(id => () => apiFetch(`/entry/${id}/event/${gw}/picks/`));
-      const allPicks = await runPool(pickTasks, CONCURRENCY, (done, total) => {
-        updateEoProgress(0.1 + (done / total) * 0.85, `Sampling top 10k: ${done.toLocaleString()}/${total.toLocaleString()}`);
-      });
+        const pickTasks = managerIds.map(id => () => apiFetch(`/entry/${id}/event/${gw}/picks/`));
+        const allPicks = await runPool(pickTasks, CONCURRENCY, (done, total) => {
+          updateEoProgress(0.1 + (done / total) * 0.85, `Sampling top 10k: ${done.toLocaleString()}/${total.toLocaleString()}`);
+        });
 
-      state.eoTop10k = aggregatePicksStructured(allPicks);
-      saveCache(cacheKey(gw, 'top10k'), state.eoTop10k);
-      render();
+        state.eoTop10k = aggregatePicksStructured(allPicks);
+        saveCache(cacheKey(gw, 'top10k'), state.eoTop10k);
+        render();
+      }
     }
 
     // Phase 2: Local EO from managers near user's overall rank (always refetch for fresh baselines)
